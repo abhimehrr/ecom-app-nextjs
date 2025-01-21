@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, {  use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Fetch } from "@/lib/fetch";
 
 import { FilterComp } from "@/components/filters";
 import { Button } from "@/components/ui/button";
+
 
 import {
   Drawer,
@@ -26,7 +27,9 @@ import {
 } from "@/components/ui/select";
 import ProductCard from "@/components/product-card";
 
-const SearchPage = () => {
+const CategorySearchPage = ({ params }) => {
+  params = use(params);
+
   const query = useSearchParams().get("q");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,60 +51,25 @@ const SearchPage = () => {
   const [showFilterBtn, setShowFilterBtn] = useState(false);
 
   // Search
-  const searchProducts = async (query) => {
-    const PRODUCTS_PER_PAGE = 50;
-    const MAX_PRODUCTS = 149;
-
+  const searchProducts = async (category) => {
     setLoading(true);
 
-    // Normalize and deduplicate keywords
-    const keywords = [...new Set(query.toLowerCase().trim().split("-"))];
-
     // Check session storage for cached products
-    let allProducts = JSON.parse(sessionStorage.getItem("allProducts")) || [];
+    let allProducts = [];
 
-    // Fetch products if not already cached
-    if (allProducts.length === 0) {
-      const totalPages = Math.ceil(MAX_PRODUCTS / PRODUCTS_PER_PAGE);
-      for (let page = 1; page <= totalPages; page++) {
-        const data = await Fetch(`?page=${page}`);
+    const data = await Fetch(`/category?type=${category}`);
 
-        if (data.status === "SUCCESS") {
-          data.products.forEach((p) => {
-            var rating = Math.round(Math.random() * 5);
-            rating = rating > 5 ? 5 : rating;
-            p.rating = rating;
-          });
-          allProducts = [...allProducts, ...data.products];
-        } else {
-          console.error("Error fetching products:", data.message);
-          break;
-        }
-      }
-      // Save fetched products to session storage
-      sessionStorage.setItem("allProducts", JSON.stringify(allProducts));
-    }
-
-    // Filter and score products based on search keywords
-    const productMap = new Map();
-    for (const product of allProducts) {
-      let matchCount = 0;
-
-      // Count the number of keywords matching this product
-      keywords.forEach((keyword) => {
-        if (product.title.toLowerCase().includes(keyword)) {
-          matchCount++;
-        }
+    if (data.status === "SUCCESS") {
+      data.products.forEach((p) => {
+        var rating = Math.round(Math.random() * 5);
+        rating = rating > 5 ? 5 : rating;
+        p.rating = rating;
       });
-
-      // If there's a match, add the product to the map with its score
-      if (matchCount > 0) {
-        productMap.set(product.id, { ...product, matchScore: matchCount });
-      }
+      allProducts = [...allProducts, ...data.products];
     }
 
     // Convert map values to an array and sort by matchScore
-    const sortedProducts = Array.from(productMap.values()).sort(
+    const sortedProducts = [...allProducts].sort(
       (a, b) => b.matchScore - a.matchScore
     );
 
@@ -173,13 +141,13 @@ const SearchPage = () => {
   // Clear filters
   const clearFilters = () => {
     setFilters(defaultFilters);
-    searchProducts(query);
+    searchProducts(params.category);
     setIsDrawerOpen(false);
   };
 
   useEffect(() => {
     setFilters(defaultFilters);
-    searchProducts(query);
+    searchProducts(params.category);
   }, [query]);
 
   useEffect(() => {
@@ -197,7 +165,7 @@ const SearchPage = () => {
     );
   }
 
-  return !query || products.length === 0 ? (
+  return !params.category || products.length === 0 ? (
     <div className="min-h-[80vh] grid place-items-center">
       <div className="space-y-4 text-center">
         <h2 className="text-xl md:text-4xl font-bold tracking-tight text-primary/70">
@@ -259,7 +227,7 @@ const SearchPage = () => {
         <section className="w-full bg-secondary/20 rounded-lg px-4 lg:col-span-4">
           <div className="mt-6 text-primary/80">
             Showing {filteredProducts.length} result for "
-            <span className="font-semibold">{query.split("-").join(" ")}</span>"
+            <span className="font-semibold">{params.category}</span>"
           </div>
           <div className="my-8">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
@@ -319,4 +287,4 @@ const FilterBtns = ({ showFilterBtn, applyFilters, clearFilters }) => {
   );
 };
 
-export default SearchPage;
+export default CategorySearchPage;
