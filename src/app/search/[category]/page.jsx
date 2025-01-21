@@ -1,12 +1,11 @@
 "use client";
 
-import React, {  use, useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Fetch } from "@/lib/fetch";
 
 import { FilterComp } from "@/components/filters";
 import { Button } from "@/components/ui/button";
-
 
 import {
   Drawer,
@@ -59,6 +58,10 @@ const CategorySearchPage = ({ params }) => {
 
     const data = await Fetch(`/category?type=${category}`);
 
+    if (data.status === "BAD-REQUEST") {
+      setLoading(false);
+      return;
+    }
     if (data.status === "SUCCESS") {
       data.products.forEach((p) => {
         var rating = Math.round(Math.random() * 5);

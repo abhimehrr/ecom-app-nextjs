@@ -178,6 +178,11 @@ const SearchPage = () => {
   };
 
   useEffect(() => {
+    if (!query) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
     setFilters(defaultFilters);
     searchProducts(query);
   }, [query]);
